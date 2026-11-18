@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>IFC / GLB para AR + Google Drive</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@500;600;700&display=swap">
+<script type="text/javascript" src="https://gc.kis.v2.scr.kaspersky-labs.com/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=tZcpXW1QXxmn_V2_eNmUWZiS-PA7CwK-H1uELumSNejQaySjpYBFOqazq8tLqBoZUahziYS0V1WFHk85FQnT44kMqOvx3W1ubTQauxkBCZoWxrw3VKeqJrCJNdkHNpwc6fnNT20idOGN0Y2Od9WvontY8BMGCiwTgSBZkJfrdH9-3DwaFVMHGgxWqTb_Rb05bCkwlunYwCfdW5-5Dn63H8izgAgZMvYkaFng2dUtTLxPqZSYSGCYFv25sl278txfyd-lWlprANpWYkW--iKwj0t2SCrLizsBRtPQghGUsLxEdOPpZ1nAtWP6lZZAvXgS2uETDjQocUPbId2PZpR1-yTmf7vM-qhuKTsORm46W0g" charset="UTF-8"></script><script type="module" src="https://unpkg.com/@google/model-viewer@3.5.0/dist/model-viewer.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+<style>
+:root{
+  --bg:#eceff0; --surface:#ffffff; --fg:#14191d; --muted:#5b666d; --line:#cfd6da;
+  --accent:#d94a1f; --accent-fg:#ffffff; --ok:#1f7a4d; --bad:#b3261e; --stage:#dfe4e6;
+  --font-display:"Space Grotesk",system-ui,sans-serif;
+  --font-body:"Inter",system-ui,sans-serif;
+  --font-mono:"JetBrains Mono",ui-monospace,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0f1316; --surface:#171d21; --fg:#e8ecee; --muted:#93a0a7; --line:#2a343a;
+    --accent:#ff7a4d; --accent-fg:#1a0d07; --ok:#5fd09a; --bad:#ff8a80; --stage:#1c2429; color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:880px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+h1,h2{font-family:var(--font-display);margin:0;text-wrap:balance}
+h1{font-size:30px;line-height:1.1;letter-spacing:-.02em}
+h2{font-size:18px}
+p{margin:0}
+.lede{color:var(--muted);max-width:65ch}
+.step{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:20px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.step-head{display:flex;align-items:baseline;gap:12px}
+.tag{font-family:var(--font-mono);font-size:12px;color:var(--accent);letter-spacing:.06em;text-transform:uppercase}
+.drop{border:1.5px dashed var(--line);border-radius:6px;padding:28px 16px;text-align:center;cursor:pointer;display:flex;flex-direction:column;gap:6px;align-items:center;background:var(--bg)}
+.drop:hover,.drop.over,.drop:focus-within{border-color:var(--accent)}
+.drop strong{font-family:var(--font-display);font-size:16px}
+.drop span{color:var(--muted);font-size:13px}
+.drop input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);min-width:0}
+input[type=text],input[type=url],select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:9px 10px;width:100%}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.btn{font:inherit;font-weight:600;border-radius:4px;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:9px 14px;cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--fg)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.07);border-color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.status{font-size:14px;min-height:1.4em;color:var(--muted)}
+.status.ok{color:var(--ok)} .status.bad{color:var(--bad)}
+.bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .2s}
+.stage{background:var(--stage);border:1px solid var(--line);border-radius:6px;overflow:hidden;position:relative}
+model-viewer{width:100%;height:380px;--poster-color:transparent;background:transparent}
+.stats{display:flex;flex-wrap:wrap;gap:6px 18px;font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.qr-grid{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start}
+.qr-box{background:#fff;padding:12px;border-radius:6px;border:1px solid var(--line);width:fit-content;max-width:100%;min-width:240px;min-height:240px;display:flex;align-items:center;justify-content:center}
+.qr-box canvas{display:block;max-width:100%;height:auto}
+.link{font-family:var(--font-mono);font-size:12px;word-break:break-all;background:var(--bg);border:1px solid var(--line);border-radius:4px;padding:8px 10px}
+.note{font-size:13px;color:var(--muted)}
+.alert-box{background:rgba(217,74,31,.08);border:1px solid var(--accent);border-radius:6px;padding:12px 14px;font-size:13px;color:var(--fg)}
+.arbtn{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);font:inherit;font-weight:600;background:var(--accent);color:var(--accent-fg);border:0;border-radius:4px;padding:12px 20px;cursor:pointer}
+.viewer{display:flex;flex-direction:column;gap:12px;max-width:880px;margin:0 auto}
+.viewer model-viewer{height:min(70vh,560px)}
+@media (max-width:560px){ .qr-grid{grid-template-columns:1fr} h1{font-size:26px} }
+</style>
+</head>
+<body>
+
+<div class="wrap" id="admin">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>IFC / GLB para AR + Google Drive (Versão 5)</h1>
+    <p class="lede">Gere o link perfeito de AR para o Google Drive e canteiro de obras.</p>
+  </header>
+
+  <section class="step" aria-labelledby="s1">
+    <div class="step-head"><span class="tag">Passo 1</span><h2 id="s1">Selecionar Arquivo .glb ou .ifc</h2></div>
+    <label class="drop" id="drop" for="file">
+      <strong id="dropTitle">Clique ou arraste seu arquivo aqui</strong>
+      <span>Aceita arquivos .glb e .ifc diretamente</span>
+      <input type="file" id="file" accept=".ifc,.glb">
+    </label>
+
+    <div class="fields">
+      <label class="f">Nome do modelo<input type="text" id="name" placeholder="Ex.: Estrutura - Bloco A"></label>
+      <label class="f">Escala no celular
+        <select id="scale">
+          <option value="1">1:1 (Tamanho real)</option>
+          <option value="20">1:20</option>
+          <option value="50">1:50</option>
+          <option value="100">1:100 (Maquete de mesa)</option>
+          <option value="200">1:200</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="bar" id="barWrap" hidden><i id="bar"></i></div>
+    <div class="status" id="status" role="status" aria-live="polite"></div>
+  </section>
+
+  <section class="step" aria-labelledby="s2" id="previewStep" hidden>
+    <div class="step-head"><span class="tag">Passo 2</span><h2 id="s2">Pré-visualização e Link do Google Drive</h2></div>
+    <div class="stage">
+      <model-viewer id="pv" ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" camera-controls touch-action="pan-y" shadow-intensity="1" exposure="1" alt="Pré-visualização do modelo">
+        <button slot="ar-button" class="arbtn" type="button">Testar AR neste aparelho</button>
+      </model-viewer>
+    </div>
+    <div class="stats" id="stats"></div>
+
+    <div class="alert-box">
+      <strong>Como conectar ao Google Drive sem erros:</strong><br>
+      1. Clique em <strong>"Baixar GLB Pronto"</strong> e salve o arquivo no seu computador.<br>
+      2. Suba o arquivo para o seu <strong>Google Drive</strong>.<br>
+      3. No Drive, clique com o botão direito no arquivo > <strong>Compartilhar > Copiar link</strong> (deixe como "Qualquer pessoa com o link").<br>
+      4. Cole o link do Drive abaixo. O sistema converterá automaticamente para o formato direto compatível com celulares no canteiro de obras.
+    </div>
+
+    <div class="fields">
+      <label class="f">Link Compartilhado do Google Drive (.glb)
+        <input type="url" id="driveUrl" placeholder="Cole aqui o link do Google Drive (ex: https://drive.google.com/file/d/...)">
+      </label>
+    </div>
+
+    <div class="row">
+      <button class="btn primary" id="generateQr" type="button">Gerar QR Code com o Link do Drive</button>
+      <button class="btn" id="saveGlb" type="button">Baixar GLB Pronto</button>
+    </div>
+  </section>
+
+  <section class="step" aria-labelledby="s3" id="qrStep" hidden>
+    <div class="step-head"><span class="tag">Passo 3</span><h2 id="s3">QR Code pronto para o Canteiro de Obras</h2></div>
+    <div class="qr-grid">
+      <div class="qr-box" id="qr" aria-label="QR code do modelo"></div>
+      <div style="display:flex;flex-direction:column;gap:10px;min-width:0">
+        <strong id="qrName"></strong>
+        <div class="link" id="qrLink"></div>
+        <div class="row">
+          <button class="btn" id="copy" type="button">Copiar link</button>
+          <button class="btn" id="savePng" type="button">Baixar QR em PNG</button>
+        </div>
+        <p class="note">Aponte a câmera do celular para este QR Code para abrir o modelo em Realidade Aumentada diretamente do Google Drive.</p>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="viewer" id="viewer" hidden>
+  <h1 id="vTitle">Modelo em AR</h1>
+  <div class="stage">
+    <model-viewer id="vm" ar ar-modes="webxr scene-viewer quick-look" ar-scale="fixed" camera-controls touch-action="pan-y" shadow-intensity="1" alt="Modelo 3D do projeto">
+      <button slot="ar-button" class="arbtn" type="button">Ver em AR no local</button>
+    </model-viewer>
+  </div>
+  <div class="status" id="vStatus" role="status" aria-live="polite">Carregando modelo...</div>
+  <p class="note">Aponte a câmera para o chão e toque na tela para posicionar.</p>
+  <div><a href="#" id="toAdmin" class="note">Voltar para a tela principal</a></div>
+</div>
+
+<script>
+(function(){
+  var $ = function(id){return document.getElementById(id)};
+  var IFC_VER = "0.0.44";
+  var IFC_BASE = "https://cdn.jsdelivr.net/npm/web-ifc@" + IFC_VER + "/";
+  var state = {blob:null, name:"", pvUrl:null};
+
+  function setStatus(msg, kind){ var s=$("status"); s.textContent=msg||""; s.className="status"+(kind?" "+kind:""); }
+  function progress(p){ $("barWrap").hidden = (p==null); if(p!=null) $("bar").style.width = Math.round(p*100)+"%"; }
+  function fmtMB(b){ return (b/1048576).toFixed(1).replace(".",",")+" MB"; }
+  function nextFrame(){ return new Promise(function(r){setTimeout(r,16)}); }
+
+  async function loadScript(src){
+    return new Promise(function(res,rej){
+      var s=document.createElement("script"); s.src=src; s.onload=res;
+      s.onerror=function(){rej(new Error("Falha ao carregar script"))};
+      document.head.appendChild(s);
+    });
+  }
+
+  var libsReady=null;
+  function ensureIfcLibs(){
+    if(!libsReady) libsReady = loadScript("https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js")
+      .then(function(){return loadScript("https://cdn.jsdelivr.net/npm/three@0.149.0/examples/js/exporters/GLTFExporter.js")})
+      .then(function(){return loadScript(IFC_BASE+"web-ifc-api-browser.js")});
+    return libsReady;
+  }
+
+  async function ifcToGlbDirect(buf, scale){
+    await ensureIfcLibs();
+    var api = new WebIFC.IfcAPI();
+    api.SetWasmPath(IFC_BASE);
+    await api.Init();
+    var id = api.OpenModel(new Uint8Array(buf));
+    var buckets = new Map(), tris = 0;
+    var p = new THREE.Vector3(), n = new THREE.Vector3();
+    api.StreamAllMeshes(id, function(mesh){
+      var pgs = mesh.geometries;
+      for(var i=0;i<pgs.size();i++){
+        var pg = pgs.get(i);
+        var g = api.GetGeometry(id, pg.geometryExpressID);
+        var v = api.GetVertexArray(g.GetVertexData(), g.GetVertexDataSize());
+        var ix = api.GetIndexArray(g.GetIndexData(), g.GetIndexDataSize());
+        var m = new THREE.Matrix4().fromArray(pg.flatTransformation);
+        var nm = new THREE.Matrix3().getNormalMatrix(m);
+        var c = pg.color;
+        var key = [c.x,c.y,c.z,c.w].map(function(q){return q.toFixed(3)}).join(",");
+        var b = buckets.get(key);
+        if(!b){ b={c:c,pos:[],nor:[],idx:[],n:0}; buckets.set(key,b); }
+        for(var k=0;k<v.length;k+=6){
+          p.set(v[k],v[k+1],v[k+2]).applyMatrix4(m);
+          n.set(v[k+3],v[k+4],v[k+5]).applyMatrix3(nm).normalize();
+          b.pos.push(p.x,p.y,p.z); b.nor.push(n.x,n.y,n.z);
+        }
+        for(var j=0;j<ix.length;j++) b.idx.push(ix[j]+b.n);
+        b.n += v.length/6; tris += ix.length/3;
+        try{ g.delete(); }catch(e){}
+      }
+    });
+    api.CloseModel(id);
+    if(!tris) throw new Error("O arquivo IFC não possui geometria válida.");
+
+    var root = new THREE.Group();
+    buckets.exports = true;
+    buckets.forEach(function(b){
+      var geo = new THREE.BufferGeometry();
+      geo.setAttribute("position", new THREE.Float32BufferAttribute(b.pos,3));
+      geo.setAttribute("normal", new THREE.Float32BufferAttribute(b.nor,3));
+      geo.setIndex(b.n>65535 ? new THREE.Uint32BufferAttribute(b.idx,1) : new THREE.Uint16BufferAttribute(b.idx,1));
+      var mat = new THREE.MeshStandardMaterial({
+        color:new THREE.Color(b.c.x,b.c.y,b.c.z), opacity:b.c.w, transparent:b.c.w<1,
+        side:THREE.DoubleSide, roughness:.85, metalness:0
+      });
+      root.add(new THREE.Mesh(geo,mat));
+    });
+    root.rotation.x = -Math.PI/2;
+    root.scale.setScalar(1/scale);
+    root.updateMatrixWorld(true);
+    var box = new THREE.Box3().setFromObject(root), ctr = box.getCenter(new THREE.Vector3());
+    root.position.set(-ctr.x, -box.min.y, -ctr.z);
+    var scene = new THREE.Scene(); scene.add(root);
+    var buf2 = await new Promise(function(res,rej){
+      new THREE.GLTFExporter().parse(scene,res,rej,{binary:true});
+    });
+    return new Blob([buf2],{type:"model/gltf-binary"});
+  }
+
+  async function handleFile(f){
+    if(!f) return;
+    var ext = (f.name.split(".").pop()||"").toLowerCase();
+    $("dropTitle").textContent = f.name;
+    if(!$("name").value) $("name").value = f.name.replace(/\.[^.]+$/,"");
+    $("previewStep").hidden = true; $("qrStep").hidden = true;
+    try{
+      var scale = parseFloat($("scale").value)||1;
+      if(ext==="glb"){
+        setStatus("Carregando arquivo GLB diretamente...");
+        state.blob = f;
+      } else if(ext==="ifc"){
+        setStatus("Convertendo arquivo IFC... Aguarde."); progress(.2);
+        await nextFrame();
+        var buf = await f.arrayBuffer();
+        progress(.5); await nextFrame();
+        state.blob = await ifcToGlbDirect(buf, scale);
+      } else {
+        throw new Error("Formato inválido. Envie um arquivo .glb ou .ifc");
+      }
+      progress(1);
+      showPreview();
+      setStatus("Modelo carregado com sucesso!", "ok");
+      setTimeout(function(){progress(null)},600);
+    }catch(err){
+      progress(null);
+      setStatus("Erro ao processar arquivo: " + (err.message || "Desconhecido"), "bad");
+    }
+  }
+
+  function showPreview(){
+    if(state.pvUrl) URL.revokeObjectURL(state.pvUrl);
+    state.pvUrl = URL.createObjectURL(state.blob);
+    $("pv").setAttribute("src", state.pvUrl);
+    $("previewStep").hidden = false;
+    $("stats").innerHTML = "<span>Tamanho: " + fmtMB(state.blob.size) + "</span>";
+  }
+
+  function convertDriveLink(url){
+    if(!url) return "";
+    // Extrai o ID do arquivo do link do Google Drive independentemente de ser /file/d/... ou ?id=...
+    var m = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if(m && m[1]){
+      // Retorna o link direto otimizado para o visualizador 3D baixar o binário .glb
+      return "https://drive.google.com/uc?export=download&id=" + m[1];
+    }
+    return url;
+  }
+
+  function generateQr(){
+    var rawUrl = $("driveUrl").value.trim();
+    if(!rawUrl){ alert("Cole o link do Google Drive primeiro."); return; }
+    
+    // Converte o link do Drive para o link direto de download de forma blindada
+    var directUrl = convertDriveLink(rawUrl);
+    var name = ($("name").value||"Modelo 3D").trim();
+    state.name = name;
+
+    // O QR code gerado apontará diretamente para o visualizador web embutido passando a URL do arquivo no Drive
+    var viewerUrl = location.href.split("#")[0] + "#url=" + encodeURIComponent(directUrl) + "&name=" + encodeURIComponent(name);
+    
+    showQr(viewerUrl, name);
+    setStatus("QR Code gerado com sucesso!", "ok");
+  }
+
+  function showQr(url, name){
+    $("qrStep").hidden = false;
+    $("qrName").textContent = name;
+    $("qrLink").textContent = url;
+    var box = $("qr"); box.innerHTML = "";
+    try{
+      var canvas = document.createElement("canvas");
+      box.appendChild(canvas);
+      new QRious({element:canvas, value:url, size:220, level:'M'});
+    }catch(e){
+      box.innerHTML = '<span style="color:var(--bad)">Erro ao desenhar QR. Use o link.</span>';
+    }
+    $("qrStep").scrollIntoView({behavior:"smooth",block:"nearest"});
+  }
+
+  function saveGlb(){
+    if(!state.blob) return;
+    var url = URL.createObjectURL(state.blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = ($("name").value||"modelo").toLowerCase().replace(/[^a-z0-9]+/g,"-") + ".glb";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function(){URL.revokeObjectURL(url)},1000);
+  }
+
+  function savePng(){
+    var canvas = $("qr").querySelector("canvas");
+    if(!canvas) return;
+    var a = document.createElement("a");
+    a.href = canvas.toDataURL("image/png");
+    a.download = "qr-ar.png";
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  }
+
+  function copyLink(){
+    navigator.clipboard.writeText($("qrLink").textContent);
+    $("copy").textContent = "Copiado!";
+    setTimeout(function(){$("copy").textContent = "Copiar link"},1600);
+  }
+
+  function route(){
+    var h = location.hash.replace(/^#/,"");
+    if(h.indexOf("url=")===0){
+      var p = new URLSearchParams(h);
+      var u = p.get("url"); var n = p.get("name");
+      $("admin").hidden = true; $("viewer").hidden = false;
+      if(n) $("vTitle").textContent = n;
+      $("vm").setAttribute("src", u);
+      $("vStatus").textContent = "Modelo carregado do Google Drive! Toque em 'Ver em AR no local'.";
+    } else {
+      $("admin").hidden = false; $("viewer").hidden = true;
+    }
+  }
+
+  window.addEventListener("hashchange", route);
+  $("toAdmin").addEventListener("click", function(e){e.preventDefault(); location.hash=""; route();});
+  $("file").addEventListener("change", function(e){handleFile(e.target.files[0])});
+  $("scale").addEventListener("change", function(){if($("file").files[0]) handleFile($("file").files[0])});
+  
+  var drop = $("drop");
+  ["dragenter","dragover"].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault(); drop.classList.add("over")})});
+  ["dragleave","drop"].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault(); drop.classList.remove("over")})});
+  drop.addEventListener("drop", function(e){if(e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0])});
+
+  $("generateQr").addEventListener("click", generateQr);
+  $("saveGlb").addEventListener("click", saveGlb);
+  $("savePng").savePng = savePng;
+  $("savePng").addEventListener("click", savePng);
+  $("copy").addEventListener("click", copyLink);
+
+  route();
+})();
+</script>
+</body>
+</html>
